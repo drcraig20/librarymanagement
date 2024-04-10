@@ -1,11 +1,11 @@
 package de.onpier.librarymanagement.persistence.reader;
 
 
-
 import de.onpier.librarymanagement.abstraction.persistence.reader.AbstractReader;
 import de.onpier.librarymanagement.persistence.model.Book;
 import de.onpier.librarymanagement.persistence.model.Borrowed;
 import de.onpier.librarymanagement.persistence.model.User;
+import de.onpier.librarymanagement.service.DateParser;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -18,6 +18,12 @@ import java.util.stream.Collectors;
 @Service
 public class BorrowedReader extends AbstractReader<Borrowed> {
 
+    private final DateParser dateParser;
+
+    public BorrowedReader(DateParser dateParser) {
+        this.dateParser = dateParser;
+    }
+
     @Override
     public Function<List<Map<String, String>>, Map<String, Borrowed>> postProcessor() {
         return csvBorrowed -> csvBorrowed.stream()
@@ -25,8 +31,8 @@ public class BorrowedReader extends AbstractReader<Borrowed> {
                 .map(map -> {
                     Book book = new Book();
                     User borrower = new User();
-                    LocalDate borrowedFrom = LocalDate.now();
-                    LocalDate borrowedTo = LocalDate.now();
+                    LocalDate borrowedFrom = dateParser.parseDate(map.get("borrowed from"));
+                    LocalDate borrowedTo = dateParser.parseDate(map.get("borrowed to"));
                     return new Borrowed(borrower, borrowedTo, borrowedFrom, book);
 
                 })
