@@ -18,11 +18,13 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @RequestMapping(value = "/borrow/users", produces = MediaType.APPLICATION_JSON_VALUE)
 @RestController
 public class BorrowedByUserController extends AbstractController<Borrowed, BorrowedDTO> {
     private final UserService userService;
+    private final BorrowedService borrowedService;
     private final DateParser dateParser;
     private final UserToDTOConverter userToDTOConverter;
 
@@ -32,6 +34,7 @@ public class BorrowedByUserController extends AbstractController<Borrowed, Borro
                                     UserToDTOConverter userToDTOConverter,
                                     BorrowedService borrowedService) {
         super(dtoConverter, borrowedService);
+        this.borrowedService = borrowedService;
         this.userService = userService;
         this.dateParser = dateParser;
         this.userToDTOConverter = userToDTOConverter;
@@ -46,11 +49,13 @@ public class BorrowedByUserController extends AbstractController<Borrowed, Borro
     }
 
     @GetMapping("/active")
-    public Set<UserDTO> findAllActiveAndNotBorrowedUsers(@RequestParam(required = false, defaultValue = "false") boolean borrow) {
+    public Set<UserDTO> findAllActiveAndNotBorrowedUsers(@RequestParam(required = false, defaultValue = "false") boolean borrower) {
         Set<User> allActiveUsers = this.userService.getAllActiveUsers();
-        if (borrow) {
-            Set<User> allBorrowers = userService.getAllBorrowers();
-            allActiveUsers.removeAll(allBorrowers);
+        if (!borrower) {
+            Set<User> allCurrentBorrowers = borrowedService.getAllStillBorrowed().stream()
+                    .map(Borrowed::getBorrower)
+                    .collect(Collectors.toSet());
+            allActiveUsers.removeAll(allCurrentBorrowers);
         }
         return userToDTOConverter.fromDataToDTOList(allActiveUsers);
     }
